@@ -3,6 +3,7 @@ pub mod declarative_providers;
 mod experiments;
 pub mod extension_install;
 pub mod extensions;
+pub mod external;
 mod migrations;
 pub mod paths;
 pub mod permission;

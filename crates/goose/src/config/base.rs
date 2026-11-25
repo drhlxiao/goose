@@ -1,3 +1,4 @@
+use super::external::ExternalSources;
 use crate::config::paths::Paths;
 use crate::config::GooseMode;
 use crate::providers::private_file::{private_file_target_path, write_private_file};
@@ -123,6 +124,7 @@ pub struct Config {
     /// The last entry is where changes will be written.
     config_paths: Vec<PathBuf>,
     secrets: SecretStorage,
+    external: Option<ExternalSources>,
     guard: Mutex<()>,
     secrets_cache: Arc<Mutex<Option<HashMap<String, Value>>>>,
     generation: AtomicU64,
@@ -206,11 +208,14 @@ impl Default for Config {
         config_paths.extend(additional_config_paths_from_env());
         config_paths.push(user_config_path.clone());
 
+        let external = ExternalSources::discover();
+
         let no_secrets_config = Self {
             config_paths: config_paths.clone(),
             secrets: SecretStorage::File {
                 path: Default::default(),
             },
+            external: external.clone(),
             guard: Mutex::new(()),
             secrets_cache: Arc::new(Mutex::new(None)),
             generation: AtomicU64::new(0),
@@ -224,6 +229,7 @@ impl Default for Config {
         Self {
             config_paths,
             secrets,
+            external,
             guard: Mutex::new(()),
             secrets_cache: Arc::new(Mutex::new(None)),
             generation: AtomicU64::new(0),
@@ -443,6 +449,7 @@ impl Config {
         Ok(Config {
             config_paths: vec![config_path],
             secrets,
+            external: None,
             guard: Mutex::new(()),
             secrets_cache: Arc::new(Mutex::new(None)),
             generation: AtomicU64::new(0),
@@ -462,6 +469,7 @@ impl Config {
             secrets: SecretStorage::File {
                 path: secrets_path.as_ref().to_path_buf(),
             },
+            external: None,
             guard: Mutex::new(()),
             secrets_cache: Arc::new(Mutex::new(None)),
             generation: AtomicU64::new(0),
@@ -477,6 +485,7 @@ impl Config {
             secrets: SecretStorage::File {
                 path: secrets_path.as_ref().to_path_buf(),
             },
+            external: None,
             guard: Mutex::new(()),
             secrets_cache: Arc::new(Mutex::new(None)),
             generation: AtomicU64::new(0),
@@ -526,8 +535,31 @@ impl Config {
         Ok(values)
     }
 
+    fn external_layers(&self, strict: bool) -> Result<Vec<Mapping>, ConfigError> {
+        let Some(external) = &self.external else {
+            return Ok(Vec::new());
+        };
+
+        let mut layers = Vec::new();
+        for layer in [external.config_layer(), external.mcp_layer()] {
+            match layer {
+                Ok(Some(layer)) => layers.push(layer),
+                Ok(None) => {}
+                Err(error) if strict => return Err(error),
+                Err(error) => {
+                    tracing::warn!("Failed to load external configuration: {error}")
+                }
+            }
+        }
+        Ok(layers)
+    }
+
     fn load(&self) -> Result<Mapping, ConfigError> {
         let mut merged = Mapping::new();
+
+        for layer in self.external_layers(false)? {
+            merge_config_values(&mut merged, layer);
+        }
 
         for path in &self.config_paths {
             if !path.exists() {
@@ -554,6 +586,10 @@ impl Config {
 
     fn load_strict(&self) -> Result<Mapping, ConfigError> {
         let mut merged = Mapping::new();
+
+        for layer in self.external_layers(true)? {
+            merge_config_values(&mut merged, layer);
+        }
 
         for path in &self.config_paths {
             match std::fs::symlink_metadata(path) {
@@ -691,7 +727,8 @@ impl Config {
             cached_secrets.clone()
         } else {
             tracing::debug!("secrets cache miss, fetching from storage");
-            let loaded = self.load_secrets_from_storage()?;
+            let mut loaded = self.load_secrets_from_storage()?;
+            self.merge_external_secrets(&mut loaded);
 
             *cache = Some(loaded.clone());
             loaded
@@ -979,8 +1016,9 @@ impl Config {
         if let Ok(val) = env::var(key.to_uppercase()) {
             return Ok(serde_json::from_value(Self::parse_env_value(&val)?)?);
         }
-        let value = self
-            .load_secrets_from_storage()?
+        let mut values = self.load_secrets_from_storage()?;
+        self.merge_external_secrets(&mut values);
+        let value = values
             .remove(key)
             .ok_or_else(|| ConfigError::NotFound(key.to_string()))?;
         Ok(serde_json::from_value(value)?)
@@ -1009,6 +1047,16 @@ impl Config {
             }
         }
         Ok(result)
+    }
+
+    fn merge_external_secrets(&self, secrets: &mut HashMap<String, Value>) {
+        let Some(external) = &self.external else {
+            return;
+        };
+        let path = external.secrets_yaml();
+        for (key, value) in super::external::read_secrets_file(&path) {
+            secrets.entry(key).or_insert(value);
+        }
     }
 
     fn load_secrets_from_storage(&self) -> Result<HashMap<String, Value>, ConfigError> {

@@ -245,6 +245,15 @@ pub async fn providers() -> Vec<(ProviderMetadata, ProviderType)> {
         .all_metadata_with_types()
 }
 
+/// Providers that may be shown to users, honouring the operator allowlist.
+pub async fn listable_providers() -> Vec<(ProviderMetadata, ProviderType)> {
+    providers()
+        .await
+        .into_iter()
+        .filter(|(metadata, _)| super::allowlist::is_provider_allowed(&metadata.name))
+        .collect()
+}
+
 pub async fn refresh_custom_providers() -> Result<()> {
     let registry = get_registry().await;
     registry.write().unwrap().remove_custom_providers();

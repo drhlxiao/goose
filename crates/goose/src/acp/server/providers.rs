@@ -856,7 +856,7 @@ impl AcpConnection {
         provider_ids: &[String],
     ) -> Vec<ProviderConfigStatusDto> {
         let mut ids = if provider_ids.is_empty() {
-            crate::providers::providers()
+            crate::providers::listable_providers()
                 .await
                 .into_iter()
                 .map(|(metadata, _)| metadata.name)

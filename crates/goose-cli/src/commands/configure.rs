@@ -23,7 +23,7 @@ use goose::config::{
 use goose::posthog::{get_telemetry_choice, TELEMETRY_ENABLED_KEY};
 use goose::providers::base::ConfigKey;
 use goose::providers::provider_test::test_provider_configuration;
-use goose::providers::{create, providers, retry_operation, RetryConfig};
+use goose::providers::{create, listable_providers, retry_operation, RetryConfig};
 use goose::session::SessionType;
 use oi_kit_providers::thinking::ThinkingEffort;
 use serde_json::Value;
@@ -834,7 +834,7 @@ pub async fn configure_provider_dialog() -> anyhow::Result<bool> {
     let config = Config::global();
 
     let current_provider: Option<String> = config.get_goose_provider().ok();
-    let mut available_providers = providers().await;
+    let mut available_providers = listable_providers().await;
     available_providers.retain(|(provider, _)| {
         provider.deprecated.is_none() || current_provider.as_deref() == Some(&provider.name)
     });

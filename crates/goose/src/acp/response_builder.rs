@@ -164,7 +164,7 @@ struct ProviderOptionEntry {
 }
 
 async fn list_provider_entries(current_provider: Option<&str>) -> Vec<ProviderOptionEntry> {
-    let mut providers = crate::providers::providers()
+    let mut providers = crate::providers::listable_providers()
         .await
         .into_iter()
         .map(|(metadata, _)| ProviderOptionEntry {

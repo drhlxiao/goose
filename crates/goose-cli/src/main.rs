@@ -1,6 +1,7 @@
 #![recursion_limit = "256"]
 
 use anyhow::Result;
+use goose::config::external::ensure_external_secrets_placeholders;
 use goose_cli::cli::cli;
 
 /// Enable ANSI/VT escape sequence processing on Windows Console Host.
@@ -20,6 +21,8 @@ async fn run() -> Result<()> {
     if let Err(e) = goose_cli::logging::setup_logging(None) {
         eprintln!("Warning: Failed to initialize logging: {}", e);
     }
+
+    ensure_external_secrets_placeholders();
 
     #[cfg(feature = "online-model-meta")]
     goose::model_catalog::initialize();

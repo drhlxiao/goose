@@ -64,6 +64,7 @@ thiserror = { version = "2.0.18", default-features = false }
 tokio = { version = "1.48", default-features = false }
 tokio-stream = { version = "0.1.16", default-features = false }
 tokio-util = { version = "0.7.12", default-features = false }
+toml = { version = "1.2.3", default-features = false, features = ["parse", "serde", "std"] }
 tower-http = { version = "0.7.0", default-features = false }
 tracing = { version = "0.1.43", default-features = false, features = ["std"] }
 tracing-appender = { version = "0.2.1", default-features = false }

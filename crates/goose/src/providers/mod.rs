@@ -1,4 +1,5 @@
 mod acp_tooling;
+pub mod allowlist;
 pub mod amp_acp;
 pub mod anthropic {
     pub use oi_kit_providers::anthropic::*;
@@ -101,6 +102,6 @@ pub mod xai_oauth;
 
 pub use init::{
     cleanup_provider, create, create_with_default_model, get_from_registry, inventory_identity,
-    providers, refresh_custom_providers,
+    listable_providers, providers, refresh_custom_providers,
 };
 pub use retry::{retry_operation, RetryConfig};

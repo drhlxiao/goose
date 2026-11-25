@@ -737,7 +737,8 @@ impl ProviderInventoryService {
             available: entry.inventory_configured(),
             provider_type: entry.provider_type(),
             acp: metadata.setup.as_ref().is_some_and(|setup| setup.acp),
-            visible_in_setup: metadata.deprecated.is_none(),
+            visible_in_setup: metadata.deprecated.is_none()
+                && crate::providers::allowlist::is_provider_allowed(&metadata.name),
             deprecated: metadata.deprecated.is_some(),
             replacement: metadata
                 .deprecated
@@ -865,6 +866,7 @@ impl ProviderInventoryService {
         } else {
             provider_ids.to_vec()
         };
+        ids.retain(|id| crate::providers::allowlist::is_provider_allowed(id));
         ids.sort();
         ids.dedup();
         ids
