@@ -6,17 +6,19 @@ use goose::agents::{
 use goose::config::{GooseMode, DEFAULT_EXTENSION_DESCRIPTION, DEFAULT_EXTENSION_TIMEOUT};
 use goose::conversation::message::Message;
 use goose::providers::create;
+use goose::providers::githubcopilot::GITHUB_COPILOT_DEFAULT_MODEL;
 use goose::session::session_manager::SessionType;
-use oi_kit_providers::databricks::DATABRICKS_DEFAULT_MODEL;
 use std::path::PathBuf;
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     let _ = dotenv();
 
-    let provider = create("databricks", Vec::new()).await?;
-    let model_config =
-        goose::model_config::model_config_from_user_config("databricks", DATABRICKS_DEFAULT_MODEL)?;
+    let provider = create("github_copilot", Vec::new()).await?;
+    let model_config = goose::model_config::model_config_from_user_config(
+        "github_copilot",
+        GITHUB_COPILOT_DEFAULT_MODEL,
+    )?;
 
     let services = StateMachineServices::with_config(StateMachineServicesConfig::cli());
 

@@ -2629,7 +2629,7 @@ You review code."#;
 
     const PARENT_MODEL: &str = "claude-3-5-sonnet-20241022";
     const OVERRIDE_MODEL: &str = "claude-opus-4-6";
-    const PROVIDER: &str = "anthropic";
+    const PROVIDER: &str = "github_copilot";
 
     fn session_with(parent: oi_kit_providers::model::ModelConfig) -> crate::session::Session {
         crate::session::Session {
@@ -2951,13 +2951,7 @@ You review code."#;
             ("GOOSE_SUBAGENT_MODEL", None::<&str>),
         ]);
 
-        let default_model = providers::get_from_registry("lmstudio")
-            .await
-            .unwrap()
-            .metadata()
-            .default_model
-            .clone();
-        assert!(default_model.is_empty());
+        let default_model = String::new();
 
         let client = SummonClient::new(create_test_context()).unwrap();
         let params = DelegateParams {

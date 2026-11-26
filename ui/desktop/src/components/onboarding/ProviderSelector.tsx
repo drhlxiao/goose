@@ -11,7 +11,6 @@ import CustomProviderForm from '../settings/providers/modal/subcomponents/forms/
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../ui/dialog';
 import { HardDrive, Key, Plus } from 'lucide-react';
 import { defineMessages, useIntl } from '../../i18n';
-import { useFeatures } from '../../contexts/FeaturesContext';
 
 const i18n = defineMessages({
   useLocalModel: {
@@ -65,8 +64,8 @@ export default function ProviderSelector({
   onFirstSelection,
 }: ProviderSelectorProps) {
   const intl = useIntl();
-  const { localInference } = useFeatures();
   const [providerList, setProviderList] = useState<ProviderDetails[]>([]);
+  const localInference = providerList.some((provider) => provider.name === 'local');
   const [selectedOption, setSelectedOption] = useState<ProviderOption | null>(null);
   const [selectedPath, setSelectedPath] = useState<SelectedPath>(null);
   const [showCustomModal, setShowCustomModal] = useState(false);
@@ -165,9 +164,6 @@ export default function ProviderSelector({
           <span className="font-medium text-text-default text-base block">
             {intl.formatMessage(i18n.connectProvider)}
           </span>
-          <p className="text-text-muted text-sm mt-1">
-            {intl.formatMessage(i18n.connectProviderDescription)}
-          </p>
         </div>
       </div>
 

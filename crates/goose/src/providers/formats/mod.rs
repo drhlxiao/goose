@@ -1,12 +1,9 @@
 pub mod anthropic {
     pub use oi_kit_providers::formats::anthropic::*;
 }
-#[cfg(feature = "aws-providers")]
-pub mod bedrock;
 pub mod databricks {
     pub use oi_kit_providers::formats::databricks::*;
 }
-pub mod gcpvertexai;
 pub mod google {
     use anyhow::Result;
     use oi_kit_providers::conversation::message::Message;

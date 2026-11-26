@@ -2,10 +2,8 @@ use anyhow::Result;
 use base64::{engine::general_purpose::STANDARD as BASE64, Engine as _};
 use dotenvy::dotenv;
 use goose::conversation::message::Message;
-use goose::providers::anthropic::ANTHROPIC_DEFAULT_MODEL;
 use goose::providers::create;
-use goose::providers::openai::OPEN_AI_DEFAULT_MODEL;
-use oi_kit_providers::databricks::DATABRICKS_DEFAULT_MODEL;
+use goose::providers::githubcopilot::GITHUB_COPILOT_DEFAULT_MODEL;
 use rmcp::model::{CallToolRequestParams, ContentBlock, Tool};
 use rmcp::object;
 use std::fs;
@@ -20,26 +18,13 @@ async fn main() -> Result<()> {
     let providers: Vec<(
         Arc<dyn goose::providers::base::Provider>,
         oi_kit_providers::model::ModelConfig,
-    )> = vec![
-        (
-            create("databricks", Vec::new()).await?,
-            goose::model_config::model_config_from_user_config(
-                "databricks",
-                DATABRICKS_DEFAULT_MODEL,
-            )?,
-        ),
-        (
-            create("openai", Vec::new()).await?,
-            goose::model_config::model_config_from_user_config("openai", OPEN_AI_DEFAULT_MODEL)?,
-        ),
-        (
-            create("anthropic", Vec::new()).await?,
-            goose::model_config::model_config_from_user_config(
-                "anthropic",
-                ANTHROPIC_DEFAULT_MODEL,
-            )?,
-        ),
-    ];
+    )> = vec![(
+        create("github_copilot", Vec::new()).await?,
+        goose::model_config::model_config_from_user_config(
+            "github_copilot",
+            GITHUB_COPILOT_DEFAULT_MODEL,
+        )?,
+    )];
     for (provider, model_config) in providers {
         // Read and encode test image
         let image_data = fs::read("crates/goose/examples/test_assets/test_image.png")?;

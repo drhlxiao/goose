@@ -2,8 +2,6 @@ use crate::config::paths::Paths;
 use crate::config::Config;
 use crate::providers::anthropic_def::AnthropicProviderDef;
 use crate::providers::base::{ModelInfo, ProviderType};
-use crate::providers::huggingface::HuggingFaceProvider;
-use crate::providers::huggingface_auth;
 use crate::providers::inventory::declarative_inventory_identity;
 use crate::providers::ollama_def::OllamaProviderDef;
 use crate::providers::openai_def::OpenAiProviderDef;
@@ -398,7 +396,7 @@ pub fn load_provider(id: &str) -> Result<LoadedProvider> {
         });
     }
 
-    if let Some(config) = fixed_provider_configs()?
+    if let Some(config) = crate::config::desktop_startup::model_providers()
         .into_iter()
         .find(|config| config.name == id)
     {
@@ -414,13 +412,13 @@ pub fn load_provider(id: &str) -> Result<LoadedProvider> {
 pub fn register_declarative_providers(
     registry: &mut crate::providers::provider_registry::ProviderRegistry,
 ) -> Result<()> {
-    let dir = custom_providers_dir();
-    let custom_providers = load_custom_providers(&dir)?;
-    let fixed_providers = fixed_provider_configs()?;
+    let fixed_providers = crate::config::desktop_startup::model_providers();
     for config in fixed_providers {
         register_declarative_provider(registry, config, ProviderType::Declarative);
     }
 
+    let dir = custom_providers_dir();
+    let custom_providers = load_custom_providers(&dir)?;
     for config in custom_providers {
         register_declarative_provider(registry, config, ProviderType::Custom);
     }
@@ -469,64 +467,21 @@ pub fn register_declarative_provider(
         ProviderEngine::OpenAI => {
             let captured = config.clone();
             let identity_config = config.clone();
-            if HuggingFaceProvider::matches_declarative_config(&config) {
-                let inventory_configured_config = config.clone();
-                registry
-                    .register_with_name_and_inventory_configured::<HuggingFaceProvider, _, _, _>(
-                        &config,
-                        provider_type,
-                        config.dynamic_models.unwrap_or(false),
-                        move |tls_config| {
-                            let mut cfg = captured.clone();
-                            resolve_config(&mut cfg)?;
-                            HuggingFaceProvider::from_custom_config(cfg, tls_config)
-                        },
-                        move || {
-                            let mut cfg = identity_config.clone();
-                            resolve_config(&mut cfg)?;
-                            declarative_inventory_identity(&cfg)
-                        },
-                        move || {
-                            let mut cfg = inventory_configured_config.clone();
-                            if resolve_config(&mut cfg).is_err() {
-                                return false;
-                            }
-                            huggingface_declarative_inventory_configured(&cfg)
-                        },
-                    );
-            } else if crate::providers::ollama_cloud::OllamaCloudProvider::matches_declarative_config(&config) {
-                registry.register_with_name::<crate::providers::ollama_cloud::OllamaCloudProvider, _, _>(
-                    &config,
-                    provider_type,
-                    config.dynamic_models.unwrap_or(false),
-                    move |tls_config| {
-                        let mut cfg = captured.clone();
-                        resolve_config(&mut cfg)?;
-                        crate::providers::ollama_cloud::OllamaCloudProvider::from_custom_config(cfg, tls_config)
-                    },
-                    move || {
-                        let mut cfg = identity_config.clone();
-                        resolve_config(&mut cfg)?;
-                        declarative_inventory_identity(&cfg)
-                    },
-                );
-            } else {
-                registry.register_with_name::<OpenAiProviderDef, _, _>(
-                    &config,
-                    provider_type,
-                    config.dynamic_models.unwrap_or(false),
-                    move |tls_config| {
-                        let mut cfg = captured.clone();
-                        resolve_config(&mut cfg)?;
-                        crate::providers::openai_def::from_custom_config(cfg, tls_config)
-                    },
-                    move || {
-                        let mut cfg = identity_config.clone();
-                        resolve_config(&mut cfg)?;
-                        declarative_inventory_identity(&cfg)
-                    },
-                );
-            }
+            registry.register_with_name::<OpenAiProviderDef, _, _>(
+                &config,
+                provider_type,
+                config.dynamic_models.unwrap_or(false),
+                move |tls_config| {
+                    let mut cfg = captured.clone();
+                    resolve_config(&mut cfg)?;
+                    crate::providers::openai_def::from_custom_config(cfg, tls_config)
+                },
+                move || {
+                    let mut cfg = identity_config.clone();
+                    resolve_config(&mut cfg)?;
+                    declarative_inventory_identity(&cfg)
+                },
+            );
         }
         ProviderEngine::Ollama => {
             let captured = config.clone();
@@ -569,14 +524,7 @@ pub fn register_declarative_provider(
     }
 }
 
-fn huggingface_declarative_inventory_configured(config: &DeclarativeProviderConfig) -> bool {
-    huggingface_declarative_inventory_configured_from_sources(
-        config,
-        |key| Config::global().get_secret::<String>(key).is_ok(),
-        || huggingface_auth::has_configured_token().unwrap_or(false),
-    )
-}
-
+#[cfg(test)]
 fn huggingface_declarative_inventory_configured_from_sources(
     config: &DeclarativeProviderConfig,
     provider_secret_configured: impl FnOnce(&str) -> bool,

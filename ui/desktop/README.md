@@ -38,20 +38,44 @@ sudo dnf install dpkg-dev fakeroot
 
 This is an Electron Forge app using Vite and React. The desktop app launches the bundled `goose` CLI binary and talks to its ACP server.
 
+## Startup configuration
+
+This build keeps GitHub Copilot as the only built-in LLM provider. The shared Rust
+backend no longer registers other built-in providers, including in the CLI.
+Generic transports remain available for custom endpoints.
+
+Place `chatLanguageModels.json` and `mcp.json` in a `config` directory next to the
+desktop executable. Development builds read the repository's `config` directory.
+Both files are required when starting a local desktop backend; invalid or missing
+files stop startup with an error. External backends manage their own configuration.
+
+`chatLanguageModels.json` uses the custom-endpoint array format: each entry has
+`name`, `vendor: "customendpoint"`, `apiType: "chat-completions"`, `apiKey`, and
+`models`. Each model has `id`, `name`, `url`, `toolCalling`, `vision`,
+`maxInputTokens`, and `maxOutputTokens`. The `id` is the model identifier sent to
+the endpoint. Models sharing a provider name and URL are grouped together;
+different URLs get separate provider entries. Input limits, output limits, and
+vision support are imported. Models with `toolCalling: false` are text-only and
+do not automatically require an Ollama tool interpreter. API keys are stored in
+goose's existing secret store, not in generated provider files. Do not commit or
+distribute configuration containing real API keys.
+
+`mcp.json` accepts a `servers` object (or `mcpServers`). HTTP servers use `url`
+and optionally `type: "http"` and `headers`; stdio servers use `command`, `args`,
+`env`, and optionally `type: "stdio"` and `cwd`. Relative working directories are
+resolved against the config directory. Entries are saved and enabled in goose's
+extension list before sessions start. Restarting updates matching entries without
+creating duplicates and preserves unrelated extensions. File entries take
+precedence over saved settings with the same name.
+
 ## Building for different platforms
 
 ### macOS
 `pnpm run bundle:default` will give you a goose.app/zip which is signed/notarized but only if you set up the env vars as per `forge.config.ts` (you can empty out the section on osxSign if you don't want to sign it) - this will have all defaults.
 
-`pnpm run bundle:preconfigured` will make a goose.app/zip signed and notarized, but use the following:
-
-```python
-            f"        process.env.GOOSE_PROVIDER__TYPE = '{os.getenv("GOOSE_BUNDLE_TYPE")}';",
-            f"        process.env.GOOSE_PROVIDER__HOST = '{os.getenv("GOOSE_BUNDLE_HOST")}';",
-            f"        process.env.GOOSE_PROVIDER__MODEL = '{os.getenv("GOOSE_BUNDLE_MODEL")}';"
-```
-
-This allows you to set for example GOOSE_PROVIDER__TYPE to be "databricks" by default if you want (so when people start goose.app - they will get that out of the box). There is no way to set an api key in that bundling as that would be a terrible idea, so only use providers that can do oauth (like databricks can), otherwise stick to default goose.
+Configure Copilot authentication through goose's provider setup. Custom endpoint
+configuration belongs in the executable-adjacent `config` directory described
+above, not in build-time provider overrides.
 
 ### Linux
 For Linux builds, first ensure you have the required system dependencies installed (see above), then:

@@ -13,13 +13,6 @@ pub fn get_local_context_limit(provider_name: &str, model: &str) -> Result<usize
     let override_limit = Config::global().get_goose_context_limit()?;
     let mut configured_limits = Vec::new();
 
-    #[cfg(feature = "aws-providers")]
-    if provider_name == "aws_bedrock" {
-        if let Some(limit) = crate::providers::bedrock::local_context_limit(model) {
-            configured_limits.push((model.to_string(), limit));
-        }
-    }
-
     #[cfg(feature = "local-inference")]
     if provider_name == "local" {
         if let Some(limit) = crate::providers::local_inference::local_context_limit(model) {

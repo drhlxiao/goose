@@ -1,5 +1,6 @@
 pub mod base;
 pub mod declarative_providers;
+pub mod desktop_startup;
 mod experiments;
 pub mod extension_install;
 pub mod extensions;
@@ -9,8 +10,6 @@ pub mod paths;
 pub mod permission;
 pub mod providers;
 pub mod search_path;
-pub mod signup_openrouter;
-pub mod signup_tetrate;
 pub mod tls;
 
 pub use crate::agents::ExtensionConfig;
@@ -24,8 +23,6 @@ pub use extensions::{
 };
 pub use oi_kit_providers::goose_mode::GooseMode;
 pub use permission::PermissionManager;
-pub use signup_openrouter::configure_openrouter;
-pub use signup_tetrate::configure_tetrate;
 
 pub use extensions::DEFAULT_DISPLAY_NAME;
 pub use extensions::DEFAULT_EXTENSION;

@@ -1168,6 +1168,9 @@ const createChat = async (
         tls: true,
         env: {
           GOOSE_PATH_ROOT: appConfig.GOOSE_PATH_ROOT as string | undefined,
+          GOOSE_DESKTOP_CONFIG_DIR: app.isPackaged
+            ? path.join(path.dirname(app.getPath('exe')), 'config')
+            : path.resolve(app.getAppPath(), '..', '..', 'config'),
         },
         loginShellPath,
         isPackaged: app.isPackaged,

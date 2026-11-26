@@ -23,6 +23,7 @@ async fn run() -> Result<()> {
     }
 
     ensure_external_secrets_placeholders();
+    goose::config::desktop_startup::initialize_from_env()?;
 
     #[cfg(feature = "online-model-meta")]
     goose::model_catalog::initialize();
